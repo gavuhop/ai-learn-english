@@ -13,7 +13,7 @@ Script `install.sh` sẽ tạo virtualenv tại `.venv/` và cài dependencies t
 
 Script `migration.sh` chỉ thực thi Alembic. Nếu `.venv/` tồn tại nó sẽ tự kích hoạt, không tự cài đặt thêm gì.
 
--  định (không tham số): đảm bảo có revision đầu tiên (nếu chưa có) và `upgrade head`.
+- Mặc định (không tham số): đảm bảo có revision đầu tiên (nếu chưa có) và `upgrade head`.
 
 ```bash
 ./migration.sh
@@ -30,23 +30,31 @@ Script `migration.sh` chỉ thực thi Alembic. Nếu `.venv/` tồn tại nó s
 ./migration.sh downgrade -1
 ```
 
-### 3) Cấu hình DATABASE_URL
+### 3) Nguồn cấu hình DB (luôn lấy từ config.yaml)
 
-`migration.sh` dùng biến môi trường `DATABASE_URL`. Nếu không đặt, mặc định là SQLite tại `./test.db`.
+`env.py` sẽ luôn đọc file `config.yaml` ở thư mục gốc để dựng `DATABASE_URL` theo thứ tự ưu tiên:
 
-Ví dụ:
+1. `config.yaml` (khóa `database` hoặc `db`):
+   - Nếu có `url`: dùng trực tiếp.
+   - Nếu không, sẽ ghép từ `driver` (mặc định `mysql+pymysql`), `host`, `port`, `user`, `password`, `name`.
+   - Nếu `driver` là `sqlite`, tên DB sẽ được coi là đường dẫn tệp trong repo.
+2. Biến môi trường `DATABASE_URL` (fallback nếu thiếu thông tin trong `config.yaml`).
+3. `alembic.ini` (cuối cùng).
 
-```bash
-# SQLite (mặc định)
-./migration.sh
+Ví dụ `config.yaml`:
 
-# Postgres
-export DATABASE_URL="postgresql+psycopg2://user:pass@localhost:5432/mydb"
-./migration.sh upgrade head
+```yaml
+db:
+  # Tuỳ chọn 1: truyền URL trực tiếp
+  # url: mysql+pymysql://user:pass@localhost:3306/ai-learn-english
 
-# MySQL
-export DATABASE_URL="mysql+pymysql://user:pass@localhost:3306/mydb"
-./migration.sh upgrade head
+  # Tuỳ chọn 2: truyền từng trường (driver mặc định mysql+pymysql)
+  host: localhost
+  port: 2500
+  user: user
+  password: password
+  name: ai-learn-english
+  # driver: mysql+pymysql
 ```
 
 ### 4) Cấu trúc liên quan

@@ -1,0 +1,19 @@
+openai:
+  key: sk-proj-1234567890
+  model: gpt-4o-mini
+gemini:
+  key: sk-proj-1234567890
+  model: gemini-2.5-flash-lite
+
+server:
+  port: 8080
+  env: development
+
+db:
+  host: localhost
+  port: 2500
+  user: user
+  password: password
+  name: ai-learn-english
+
+log_level: info

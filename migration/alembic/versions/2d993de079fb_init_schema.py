@@ -1,8 +1,8 @@
 """init schema
 
-Revision ID: 25228d4a12ad
+Revision ID: 2d993de079fb
 Revises: 
-Create Date: 2025-11-03 17:57:58.505430
+Create Date: 2025-11-03 18:25:55.581046
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '25228d4a12ad'
+revision = '2d993de079fb'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -23,7 +23,7 @@ def upgrade() -> None:
     sa.Column('email', sa.String(length=255), nullable=False),
     sa.Column('username', sa.String(length=100), nullable=True),
     sa.Column('password_hash', sa.String(length=255), nullable=True),
-    sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email'),
     sa.UniqueConstraint('username')
@@ -37,7 +37,7 @@ def upgrade() -> None:
     sa.Column('language', sa.String(length=20), server_default='en', nullable=True),
     sa.Column('page_count', sa.Integer(), nullable=True),
     sa.Column('sha256', sa.String(length=64), nullable=True),
-    sa.Column('uploaded_at', sa.TIMESTAMP(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('uploaded_at', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('sha256')
@@ -53,7 +53,7 @@ def upgrade() -> None:
     sa.Column('milvus_collection', sa.String(length=128), nullable=False),
     sa.Column('milvus_id', sa.BigInteger(), nullable=False),
     sa.Column('content_hash', sa.String(length=64), nullable=False),
-    sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.ForeignKeyConstraint(['document_id'], ['documents.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -63,7 +63,7 @@ def upgrade() -> None:
     sa.Column('role', sa.Enum('user', 'assistant', name='role_enum'), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
     sa.Column('document_id', sa.BigInteger(), nullable=True),
-    sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.ForeignKeyConstraint(['document_id'], ['documents.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
