@@ -2,40 +2,42 @@ package main
 
 import (
 	"ai-learn-english/config"
+	"ai-learn-english/internal/api/teacher"
 	"context"
 	"fmt"
+	"log"
 	"time"
 
-	"github.com/milvus-io/milvus-sdk-go/v2/client"
+	"github.com/gofiber/fiber/v3"
+	malvus "github.com/milvus-io/milvus-sdk-go/v2/client"
 )
 
-func connectMilvusWithRetry(address string, attempts int, perAttemptTimeout time.Duration, delay time.Duration) (client.Client, error) {
-	var lastErr error
-	for i := 0; i < attempts; i++ {
-		ctx, cancel := context.WithTimeout(context.Background(), perAttemptTimeout)
-		cli, err := client.NewClient(ctx, client.Config{Address: address})
-		cancel()
-		if err == nil {
-			return cli, nil
-		}
-		lastErr = err
-		time.Sleep(delay)
-	}
-	return nil, lastErr
-}
-
 func main() {
-	config.Init("config.yml")
-	fmt.Println("Database Host: ", config.Cfg.Database.Host)
-
-	// Milvus demo with retry (Milvus may take tens of seconds to boot)
-	cli, err := connectMilvusWithRetry("localhost:19530", 20, 5*time.Second, 2*time.Second)
-	if err != nil {
-		fmt.Println("Milvus connect error:", err)
-		return
+	if err := config.Init("config.yaml"); err != nil {
+		log.Printf("config init error: %v", err)
 	}
-	defer cli.Close()
 
-	fmt.Println("Milvus connected!")
+	app := fiber.New()
 
+	app.Get("/health", func(c fiber.Ctx) error {
+		return c.SendString("ok")
+	})
+
+	// Milvus connectivity check on startup
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	cli, err := malvus.NewClient(ctx, malvus.Config{Address: "localhost:19530"})
+	cancel()
+	if err != nil {
+		log.Printf("milvus connect error: %v", err)
+	}
+	cli.Close()
+	log.Println("milvus ok")
+
+	// routes
+	teacher.RegisterRoutes(app)
+
+	addr := fmt.Sprintf(":%d", config.Cfg.Server.Port)
+	if err := app.Listen(addr); err != nil {
+		log.Printf("server error: %v", err)
+	}
 }
