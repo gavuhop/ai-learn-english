@@ -7,21 +7,15 @@ REPO_ROOT="$SCRIPT_DIR"
 
 cd "$REPO_ROOT"
 
-PYTHON_BIN="python3"
 VENV_DIR="$REPO_ROOT/.venv"
 
 echo "[migration] Using repo: $REPO_ROOT"
 
-if [ ! -d "$VENV_DIR" ]; then
-  echo "[migration] Creating virtualenv at $VENV_DIR"
-  "$PYTHON_BIN" -m venv "$VENV_DIR"
+# Optionally activate virtualenv if it exists (no install logic here)
+if [ -f "$VENV_DIR/bin/activate" ]; then
+  # shellcheck disable=SC1090
+  source "$VENV_DIR/bin/activate"
 fi
-
-source "$VENV_DIR/bin/activate"
-
-echo "[migration] Installing requirements"
-pip install --upgrade pip >/dev/null
-pip install -r "$REPO_ROOT/requirements.txt"
 
 # Allow override; default to sqlite database in repo root
 export DATABASE_URL="${DATABASE_URL:-sqlite:///$REPO_ROOT/test.db}"
