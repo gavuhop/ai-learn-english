@@ -6,7 +6,7 @@ BIN := $(BIN_DIR)/$(APP_NAME)
 .PHONY: run build tidy clean
 
 run:
-	$(GO) run ./cmd
+	$(GO) run ./cmd/api
 
 build:
 	mkdir -p $(BIN_DIR)
