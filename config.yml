@@ -8,6 +8,7 @@ gemini:
 server:
   port: 8080
   env: development
+  log_level: info
 
 db:
   host: localhost

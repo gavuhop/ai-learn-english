@@ -16,6 +16,16 @@ type ServerConfig struct {
 	Mode string `koanf:"mode"`
 }
 
+type LogLevel string
+const (
+	DEBUG LogLevel = "debug"
+	INFO  LogLevel = "info"
+	WARN  LogLevel = "warn"
+	ERROR LogLevel = "error"
+	FATAL LogLevel = "fatal"
+	PANIC LogLevel = "panic"
+)
+
 type DatabaseConfig struct {
 	Host     string `koanf:"host"`
 	Port     int    `koanf:"port"`
@@ -39,6 +49,7 @@ type Config struct {
 	Database DatabaseConfig `koanf:"database"`
 	OpenAI   OpenAIConfig   `koanf:"openai"`
 	Gemini   GeminiConfig   `koanf:"gemini"`
+	LogLevel LogLevel       `koanf:"log_level"`
 }
 
 var defaultConfig = Config{
@@ -61,6 +72,7 @@ var defaultConfig = Config{
 		Key:   "",
 		Model: "default",
 	},
+	LogLevel: INFO,
 }
 
 var (

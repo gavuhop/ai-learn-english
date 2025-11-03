@@ -16,6 +16,7 @@ require (
 	github.com/knadh/koanf/maps v0.1.2 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+	github.com/sirupsen/logrus v1.9.3
 	go.yaml.in/yaml/v3 v3.0.3 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 )
