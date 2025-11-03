@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -17,6 +18,7 @@ type ServerConfig struct {
 }
 
 type LogLevel string
+
 const (
 	DEBUG LogLevel = "debug"
 	INFO  LogLevel = "info"
@@ -50,6 +52,17 @@ type Config struct {
 	OpenAI   OpenAIConfig   `koanf:"openai"`
 	Gemini   GeminiConfig   `koanf:"gemini"`
 	LogLevel LogLevel       `koanf:"log_level"`
+	Dns      string         `koanf:"dns"`
+}
+
+func buildMySQLDSN(cfg DatabaseConfig) string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		cfg.User,
+		cfg.Password,
+		cfg.Host,
+		cfg.Port,
+		cfg.Name,
+	)
 }
 
 var defaultConfig = Config{
@@ -107,6 +120,10 @@ func Init(path string) error {
 		if e := k.Unmarshal("", &Cfg); e != nil {
 			err = e
 			return
+		}
+
+		if Cfg.Dns == "" {
+			Cfg.Dns = buildMySQLDSN(Cfg.Database)
 		}
 	})
 

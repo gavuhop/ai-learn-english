@@ -7,9 +7,9 @@ gemini:
 
 server:
   port: 8080
-  env: development
+  mode: development
 
-db:
+database:
   host: localhost
   port: 2500
   user: user
