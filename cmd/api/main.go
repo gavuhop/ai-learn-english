@@ -3,6 +3,7 @@ package main
 import (
 	"ai-learn-english/config"
 	"ai-learn-english/internal/api/teacher"
+	"ai-learn-english/internal/api/upload"
 	"context"
 	"fmt"
 	"log"
@@ -35,6 +36,7 @@ func main() {
 
 	// routes
 	teacher.RegisterRoutes(app)
+	upload.RegisterRoutes(app)
 
 	addr := fmt.Sprintf(":%d", config.Cfg.Server.Port)
 	if err := app.Listen(addr); err != nil {
