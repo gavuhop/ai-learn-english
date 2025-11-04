@@ -34,6 +34,9 @@ type DatabaseConfig struct {
 	User     string `koanf:"user"`
 	Password string `koanf:"password"`
 	Name     string `koanf:"name"`
+	MaxIdleConns int `koanf:"max_idle_conns"`
+	MaxOpenConns int `koanf:"max_open_conns"`
+	MaxLifetime int `koanf:"max_lifetime"`
 }
 
 type OpenAIConfig struct {
