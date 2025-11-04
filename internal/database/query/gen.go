@@ -18,17 +18,29 @@ import (
 var (
 	Q              = new(Query)
 	AlembicVersion *alembicVersion
+	Chunk          *chunk
+	Document       *document
+	Message        *message
+	User           *user
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
 	AlembicVersion = &Q.AlembicVersion
+	Chunk = &Q.Chunk
+	Document = &Q.Document
+	Message = &Q.Message
+	User = &Q.User
 }
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:             db,
 		AlembicVersion: newAlembicVersion(db, opts...),
+		Chunk:          newChunk(db, opts...),
+		Document:       newDocument(db, opts...),
+		Message:        newMessage(db, opts...),
+		User:           newUser(db, opts...),
 	}
 }
 
@@ -36,6 +48,10 @@ type Query struct {
 	db *gorm.DB
 
 	AlembicVersion alembicVersion
+	Chunk          chunk
+	Document       document
+	Message        message
+	User           user
 }
 
 func (q *Query) Available() bool { return q.db != nil }
@@ -44,6 +60,10 @@ func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:             db,
 		AlembicVersion: q.AlembicVersion.clone(db),
+		Chunk:          q.Chunk.clone(db),
+		Document:       q.Document.clone(db),
+		Message:        q.Message.clone(db),
+		User:           q.User.clone(db),
 	}
 }
 
@@ -59,16 +79,28 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:             db,
 		AlembicVersion: q.AlembicVersion.replaceDB(db),
+		Chunk:          q.Chunk.replaceDB(db),
+		Document:       q.Document.replaceDB(db),
+		Message:        q.Message.replaceDB(db),
+		User:           q.User.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
 	AlembicVersion IAlembicVersionDo
+	Chunk          IChunkDo
+	Document       IDocumentDo
+	Message        IMessageDo
+	User           IUserDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
 		AlembicVersion: q.AlembicVersion.WithContext(ctx),
+		Chunk:          q.Chunk.WithContext(ctx),
+		Document:       q.Document.WithContext(ctx),
+		Message:        q.Message.WithContext(ctx),
+		User:           q.User.WithContext(ctx),
 	}
 }
 
