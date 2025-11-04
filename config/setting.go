@@ -29,14 +29,14 @@ const (
 )
 
 type DatabaseConfig struct {
-	Host     string `koanf:"host"`
-	Port     int    `koanf:"port"`
-	User     string `koanf:"user"`
-	Password string `koanf:"password"`
-	Name     string `koanf:"name"`
-	MaxIdleConns int `koanf:"max_idle_conns"`
-	MaxOpenConns int `koanf:"max_open_conns"`
-	MaxLifetime int `koanf:"max_lifetime"`
+	Host         string `koanf:"host"`
+	Port         int    `koanf:"port"`
+	User         string `koanf:"user"`
+	Password     string `koanf:"password"`
+	Name         string `koanf:"name"`
+	MaxIdleConns int    `koanf:"max_idle_conns"`
+	MaxOpenConns int    `koanf:"max_open_conns"`
+	MaxLifetime  int    `koanf:"max_lifetime"`
 }
 
 type OpenAIConfig struct {
@@ -56,6 +56,16 @@ type Config struct {
 	Gemini   GeminiConfig   `koanf:"gemini"`
 	LogLevel LogLevel       `koanf:"log_level"`
 	Dns      string         `koanf:"dns"`
+	S3       S3Config       `koanf:"s3"`
+}
+
+type S3Config struct {
+	Endpoint  string `koanf:"endpoint"`
+	AccessKey string `koanf:"access_key"`
+	SecretKey string `koanf:"secret_key"`
+	Region    string `koanf:"region"`
+	UseSSL    bool   `koanf:"use_ssl"`
+	Bucket    string `koanf:"bucket"`
 }
 
 func buildMySQLDSN(cfg DatabaseConfig) string {
@@ -89,6 +99,14 @@ var defaultConfig = Config{
 		Model: "default",
 	},
 	LogLevel: INFO,
+	S3: S3Config{
+		Endpoint:  "http://localhost:9000",
+		AccessKey: "minioadmin",
+		SecretKey: "minioadmin",
+		Region:    "us-east-1",
+		UseSSL:    false,
+		Bucket:    "uploads",
+	},
 }
 
 var (

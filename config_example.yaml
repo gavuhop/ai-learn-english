@@ -15,5 +15,16 @@ database:
   user: user
   password: password
   name: ai-learn-english
+  max_idle_conns: 10
+  max_open_conns: 100
+  max_lifetime: 10
+
+s3:
+  endpoint: http://localhost:9000
+  access_key: minioadmin
+  secret_key: minioadmin
+  region: us-east-1
+  use_ssl: false
+  bucket: uploads
 
 log_level: info
