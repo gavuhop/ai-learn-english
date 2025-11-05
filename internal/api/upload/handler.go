@@ -17,6 +17,9 @@ import (
 	"strings"
 	"time"
 
+	"ai-learn-english/pkg/apperror"
+	"ai-learn-english/pkg/apperror/status"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -28,18 +31,19 @@ type uploadResponse struct {
 }
 
 func HandleUpload(c fiber.Ctx) error {
+	trackingID := c.Get("X-Request-ID")
 	// Parse multipart file
 	fh, err := c.FormFile("file")
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "file is required"})
+		return apperror.BadRequest(c, status.FileUploadMissingParams, "file is required")
 	}
 	if fh == nil || fh.Size == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "empty file"})
+		return apperror.BadRequest(c, status.FileUploadMissingParams, "empty file")
 	}
 
 	file, err := fh.Open()
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot open file"})
+		return apperror.BadRequest(c, status.FileUploadMissingParams, "cannot open file")
 	}
 	defer file.Close()
 
@@ -50,16 +54,16 @@ func HandleUpload(c fiber.Ctx) error {
 	// Prepare DB connection
 	db, err := database.GetDB()
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "db unavailable"})
+		return apperror.InternalError(c, err)
 	}
 
 	if err := EnsureDocumentsStatusColumn(db); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to ensure schema"})
+		return apperror.InternalError(c, err)
 	}
 
 	userID, err := EnsureDefaultUser(db)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to ensure user"})
+		return apperror.InternalError(c, err)
 	}
 
 	// Decide storage backend
@@ -75,7 +79,7 @@ func HandleUpload(c fiber.Ctx) error {
 		storedPath, sha256Hex, err = storeToLocal(tee, fh, hasher)
 	}
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return apperror.InternalError(c, err)
 	}
 
 	// Create DB record (insert via model, then set status)
@@ -88,14 +92,19 @@ func HandleUpload(c fiber.Ctx) error {
 		UploadedAt:       &now,
 	}
 	if err := db.Create(&doc).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save document"})
+		return apperror.InternalError(c, err)
 	}
 	// Optional: update sha256 if available in schema
 	_ = db.Model(&model.Document{}).Where("id = ?", doc.ID).Update("sha256", sha256Hex).Error
 	// Update status column
 	_ = db.Exec("UPDATE documents SET status=? WHERE id=?", "uploaded", doc.ID).Error
 
-	return c.Status(fiber.StatusOK).JSON(uploadResponse{DocID: doc.ID})
+	return apperror.Success(c, apperror.FiberSuccessMessage{
+		Code:       status.OK,
+		Message:    "File uploaded successfully",
+		TrackingID: trackingID,
+		Data:       uploadResponse{DocID: doc.ID},
+	})
 }
 
 func storeToLocal(r io.Reader, fh *multipart.FileHeader, hasher io.Writer) (string, string, error) {
