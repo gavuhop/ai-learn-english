@@ -26,9 +26,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-type uploadResponse struct {
-	DocID int64 `json:"doc_id"`
-}
+
 
 func HandleUpload(c fiber.Ctx) error {
 	trackingID := c.Get("X-Request-ID")

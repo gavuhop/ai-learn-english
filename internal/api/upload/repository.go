@@ -13,19 +13,22 @@ func EnsureDocumentsStatusColumn(db *gorm.DB) error {
 	if db == nil {
 		return errors.New("nil db")
 	}
-	res := db.Exec("ALTER TABLE documents ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT 'uploaded'")
-	if res.Error != nil {
-		var count int64
-		check := db.
-			Table("information_schema.COLUMNS").
-			Where("TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?", "documents", "status").
-			Count(&count)
-		if check.Error != nil {
-			return res.Error
-		}
-		if count == 0 {
-			return res.Error
-		}
+
+	// Check first to avoid using unsupported "IF NOT EXISTS" on older MySQL versions
+	var count int64
+	if err := db.
+		Table("information_schema.COLUMNS").
+		Where("TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?", "documents", "status").
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	// Add the column without IF NOT EXISTS for broad MySQL compatibility
+	if err := db.Exec("ALTER TABLE documents ADD COLUMN status VARCHAR(32) NOT NULL DEFAULT 'uploaded'").Error; err != nil {
+		return err
 	}
 	return nil
 }
