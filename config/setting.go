@@ -13,8 +13,11 @@ import (
 )
 
 type serverConfig struct {
-	Port int    `koanf:"port"`
-	Mode string `koanf:"mode"`
+	Port        int    `koanf:"port"`
+	Mode        string `koanf:"mode"`
+	Concurrency int    `koanf:"concurrency"`
+	BodyLimit   int    `koanf:"body_limit"`
+	AppName     string `koanf:"app_name"`
 }
 
 type logLevel string
@@ -49,6 +52,16 @@ type geminiConfig struct {
 	Model string `koanf:"model"`
 }
 
+type corsConfig struct {
+	AllowOrigins []string `koanf:"allow_origins"`
+	AllowMethods []string `koanf:"allow_methods"`
+	AllowHeaders []string `koanf:"allow_headers"`
+}
+
+type milvusConfig struct {
+	Address string `koanf:"address"`
+}
+
 type config struct {
 	Server   serverConfig   `koanf:"server"`
 	Database databaseConfig `koanf:"database"`
@@ -57,6 +70,8 @@ type config struct {
 	LogLevel logLevel       `koanf:"log_level"`
 	Dns      string         `koanf:"dns"`
 	S3       s3Config       `koanf:"s3"`
+	Cors     corsConfig     `koanf:"cors"`
+	Milvus   milvusConfig   `koanf:"milvus"`
 }
 
 type s3Config struct {
@@ -106,6 +121,9 @@ var defaultConfig = config{
 		Region:    "us-east-1",
 		UseSSL:    false,
 		Bucket:    "uploads",
+	},
+	Milvus: milvusConfig{
+		Address: "localhost:19530",
 	},
 }
 
