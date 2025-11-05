@@ -3,6 +3,7 @@ package main
 import (
 	"ai-learn-english/config"
 	"ai-learn-english/internal/api/healthcheck"
+	apiIngest "ai-learn-english/internal/api/ingest"
 	"ai-learn-english/internal/api/teacher"
 	"ai-learn-english/internal/api/upload"
 	"ai-learn-english/pkg/logger"
@@ -33,6 +34,7 @@ func main() {
 
 	// routes
 	healthcheck.RegisterRoutes(app)
+	apiIngest.RegisterRoutes(app)
 	teacher.RegisterRoutes(app)
 	upload.RegisterRoutes(app)
 

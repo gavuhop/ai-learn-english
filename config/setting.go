@@ -45,6 +45,7 @@ type databaseConfig struct {
 type openaiConfig struct {
 	Key   string `koanf:"key"`
 	Model string `koanf:"model"`
+	EmbeddingModel string `koanf:"embedding_model"`
 }
 
 type geminiConfig struct {
@@ -59,7 +60,8 @@ type corsConfig struct {
 }
 
 type milvusConfig struct {
-	Address string `koanf:"address"`
+	Address    string `koanf:"address"`
+	Collection string `koanf:"collection"`
 }
 
 type config struct {
@@ -72,6 +74,7 @@ type config struct {
 	S3       s3Config       `koanf:"s3"`
 	Cors     corsConfig     `koanf:"cors"`
 	Milvus   milvusConfig   `koanf:"milvus"`
+	Ingest   ingestConfig   `koanf:"ingest"`
 }
 
 type s3Config struct {
@@ -81,6 +84,11 @@ type s3Config struct {
 	Region    string `koanf:"region"`
 	UseSSL    bool   `koanf:"use_ssl"`
 	Bucket    string `koanf:"bucket"`
+}
+
+type ingestConfig struct {
+	ChunkTokens  int `koanf:"chunk_tokens"`
+	ChunkOverlap int `koanf:"chunk_overlap"`
 }
 
 func buildMySQLDSN(cfg databaseConfig) string {
@@ -123,7 +131,12 @@ var defaultConfig = config{
 		Bucket:    "uploads",
 	},
 	Milvus: milvusConfig{
-		Address: "localhost:19530",
+		Address:    "localhost:19530",
+		Collection: "chunks",
+	},
+	Ingest: ingestConfig{
+		ChunkTokens:  600,
+		ChunkOverlap: 80,
 	},
 }
 
