@@ -4,9 +4,9 @@ import (
 	"ai-learn-english/config"
 	"ai-learn-english/internal/api/teacher"
 	"ai-learn-english/internal/api/upload"
+	"ai-learn-english/pkg/logger"
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -14,10 +14,6 @@ import (
 )
 
 func main() {
-	if err := config.Init("config.yaml"); err != nil {
-		log.Printf("config init error: %v", err)
-	}
-
 	app := fiber.New()
 
 	app.Get("/health", func(c fiber.Ctx) error {
@@ -29,10 +25,10 @@ func main() {
 	cli, err := malvus.NewClient(ctx, malvus.Config{Address: "localhost:19530"})
 	cancel()
 	if err != nil {
-		log.Printf("milvus connect error: %v", err)
+		logger.Error(err, "milvus connect error")
 	}
 	cli.Close()
-	log.Println("milvus ok")
+	logger.Info("milvus ok")
 
 	// routes
 	teacher.RegisterRoutes(app)
@@ -40,6 +36,7 @@ func main() {
 
 	addr := fmt.Sprintf(":%d", config.Cfg.Server.Port)
 	if err := app.Listen(addr); err != nil {
-		log.Printf("server error: %v", err)
+		logger.Error(err, "server error")
 	}
+
 }

@@ -12,23 +12,23 @@ import (
 	"github.com/knadh/koanf/v2"
 )
 
-type ServerConfig struct {
+type serverConfig struct {
 	Port int    `koanf:"port"`
 	Mode string `koanf:"mode"`
 }
 
-type LogLevel string
+type logLevel string
 
 const (
-	DEBUG LogLevel = "debug"
-	INFO  LogLevel = "info"
-	WARN  LogLevel = "warn"
-	ERROR LogLevel = "error"
-	FATAL LogLevel = "fatal"
-	PANIC LogLevel = "panic"
+	Debug logLevel = "debug"
+	Info  logLevel = "info"
+	Warn  logLevel = "warn"
+	Error logLevel = "error"
+	Fatal logLevel = "fatal"
+	Panic logLevel = "panic"
 )
 
-type DatabaseConfig struct {
+type databaseConfig struct {
 	Host         string `koanf:"host"`
 	Port         int    `koanf:"port"`
 	User         string `koanf:"user"`
@@ -39,27 +39,27 @@ type DatabaseConfig struct {
 	MaxLifetime  int    `koanf:"max_lifetime"`
 }
 
-type OpenAIConfig struct {
+type openaiConfig struct {
 	Key   string `koanf:"key"`
 	Model string `koanf:"model"`
 }
 
-type GeminiConfig struct {
+type geminiConfig struct {
 	Key   string `koanf:"key"`
 	Model string `koanf:"model"`
 }
 
-type Config struct {
-	Server   ServerConfig   `koanf:"server"`
-	Database DatabaseConfig `koanf:"database"`
-	OpenAI   OpenAIConfig   `koanf:"openai"`
-	Gemini   GeminiConfig   `koanf:"gemini"`
-	LogLevel LogLevel       `koanf:"log_level"`
+type config struct {
+	Server   serverConfig   `koanf:"server"`
+	Database databaseConfig `koanf:"database"`
+	OpenAI   openaiConfig   `koanf:"openai"`
+	Gemini   geminiConfig   `koanf:"gemini"`
+	LogLevel logLevel       `koanf:"log_level"`
 	Dns      string         `koanf:"dns"`
-	S3       S3Config       `koanf:"s3"`
+	S3       s3Config       `koanf:"s3"`
 }
 
-type S3Config struct {
+type s3Config struct {
 	Endpoint  string `koanf:"endpoint"`
 	AccessKey string `koanf:"access_key"`
 	SecretKey string `koanf:"secret_key"`
@@ -68,7 +68,7 @@ type S3Config struct {
 	Bucket    string `koanf:"bucket"`
 }
 
-func buildMySQLDSN(cfg DatabaseConfig) string {
+func buildMySQLDSN(cfg databaseConfig) string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		cfg.User,
 		cfg.Password,
@@ -78,28 +78,28 @@ func buildMySQLDSN(cfg DatabaseConfig) string {
 	)
 }
 
-var defaultConfig = Config{
-	Server: ServerConfig{
+var defaultConfig = config{
+	Server: serverConfig{
 		Port: 8000,
 		Mode: "release",
 	},
-	Database: DatabaseConfig{
+	Database: databaseConfig{
 		Host:     "127.0.0.1",
 		Port:     5432,
 		User:     "root",
 		Password: "",
 		Name:     "testdb",
 	},
-	OpenAI: OpenAIConfig{
+	OpenAI: openaiConfig{
 		Key:   "",
 		Model: "default",
 	},
-	Gemini: GeminiConfig{
+	Gemini: geminiConfig{
 		Key:   "",
 		Model: "default",
 	},
-	LogLevel: INFO,
-	S3: S3Config{
+	LogLevel: Info,
+	S3: s3Config{
 		Endpoint:  "http://localhost:9000",
 		AccessKey: "minioadmin",
 		SecretKey: "minioadmin",
@@ -114,8 +114,8 @@ var (
 	once sync.Once
 )
 
-func Init(path string) error {
-	var err error
+func init() {
+	path := "config.yaml"
 
 	once.Do(func() {
 		k := koanf.New(".")
@@ -125,7 +125,6 @@ func Init(path string) error {
 
 		// file
 		if e := k.Load(file.Provider(path), yaml.Parser()); e != nil && !os.IsNotExist(e) {
-			err = e
 			return
 		}
 
@@ -133,13 +132,11 @@ func Init(path string) error {
 		if e := k.Load(env.Provider("APP_", ".", func(s string) string {
 			return strings.ToLower(strings.TrimPrefix(s, "APP_"))
 		}), nil); e != nil {
-			err = e
 			return
 		}
 
 		// bind
 		if e := k.Unmarshal("", &Cfg); e != nil {
-			err = e
 			return
 		}
 
@@ -148,5 +145,4 @@ func Init(path string) error {
 		}
 	})
 
-	return err
 }

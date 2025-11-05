@@ -3,7 +3,6 @@ package database
 import (
 	"ai-learn-english/config"
 	"ai-learn-english/pkg/logger"
-	"log"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -36,7 +35,7 @@ func connect() (*gorm.DB, error) {
 func init() {
 	db, err := connect()
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		logger.Error(err, "database: failed to connect to database")
 	}
 	DB = db
 }
@@ -47,7 +46,7 @@ func ensureConnection() error {
 	if DB == nil {
 		new_db, err := connect()
 		if err != nil {
-			logger.Error(err, "database: EnsureConnection failed")
+			logger.Error(err, "database: failed to ensure connection")
 			return err
 		}
 		DB = new_db
@@ -55,14 +54,14 @@ func ensureConnection() error {
 	} else { // If db is initialized, check if it is reachable
 		sql_db, err := DB.DB()
 		if err != nil {
-			logger.Error(err, "database: EnsureConnection failed")
+			logger.Error(err, "database: failed to get database connection")
 			return err
 		}
 		if err := sql_db.Ping(); err != nil {
 			// If db is not reachable, try connecting to the database
 			new_db, err := connect()
 			if err != nil {
-				logger.Error(err, "database: EnsureConnection failed")
+				logger.Error(err, "database: failed to connect to database")
 				return err
 			}
 			DB = new_db
@@ -75,7 +74,7 @@ func ensureConnection() error {
 // GetDB returns a healthy *gorm.DB, attempting reconnect if necessary
 func GetDB() (*gorm.DB, error) {
 	if err := ensureConnection(); err != nil {
-		logger.Error(err, "database: EnsureConnection failed")
+		logger.Error(err, "database: failed to get database connection")
 		return nil, err
 	}
 	return DB, nil

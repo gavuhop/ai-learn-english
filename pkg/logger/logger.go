@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"ai-learn-english/config"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,17 +22,17 @@ func init() {
 
 	level := config.Cfg.LogLevel
 	switch level {
-	case config.DEBUG:
+	case config.Debug:
 		log.SetLevel(logrus.DebugLevel)
-	case config.INFO:
+	case config.Info:
 		log.SetLevel(logrus.InfoLevel)
-	case config.WARN:
+	case config.Warn:
 		log.SetLevel(logrus.WarnLevel)
-	case config.ERROR:
+	case config.Error:
 		log.SetLevel(logrus.ErrorLevel)
-	case config.FATAL:
+	case config.Fatal:
 		log.SetLevel(logrus.FatalLevel)
-	case config.PANIC:
+	case config.Panic:
 		log.SetLevel(logrus.PanicLevel)
 	default:
 		log.SetLevel(logrus.InfoLevel)

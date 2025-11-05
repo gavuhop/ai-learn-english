@@ -10,9 +10,6 @@ import (
 )
 
 func main() {
-	if err := config.Init("config.yaml"); err != nil {
-		log.Fatalf("failed to load config: %v", err)
-	}
 	dsn := config.Cfg.Dns
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
