@@ -1,7 +1,7 @@
 package ingest
 
 import (
-	"ai-learn-english/internal/services/ingest"
+	"ai-learn-english/internal/core/ingest"
 	"ai-learn-english/pkg/apperror"
 	"ai-learn-english/pkg/apperror/status"
 	"strconv"
