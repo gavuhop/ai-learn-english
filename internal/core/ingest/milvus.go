@@ -2,6 +2,7 @@ package ingest
 
 import (
 	"ai-learn-english/config"
+	"ai-learn-english/pkg/logger"
 	"context"
 
 	milvusclient "github.com/milvus-io/milvus-sdk-go/v2/client"
@@ -9,6 +10,7 @@ import (
 )
 
 const milvusVectorDim = 1536
+const milvusContentMaxLen = 8192
 
 // UpsertMilvusVectors ensures collection and inserts embeddings. Returns IDs and collection.
 func UpsertMilvusVectors(ctx context.Context, vectors [][]float32, docID int64, chunks []Chunk) ([]int64, string, error) {
@@ -37,9 +39,13 @@ func UpsertMilvusVectors(ctx context.Context, vectors [][]float32, docID int64, 
 	// Prepare columns
 	docIDs := make([]int64, len(chunks))
 	chunkIdxs := make([]int32, len(chunks))
+	pageIdxs := make([]int32, len(chunks))
+	contents := make([]string, len(chunks))
 	for i, ch := range chunks {
 		docIDs[i] = docID
 		chunkIdxs[i] = ch.ChunkIndex
+		pageIdxs[i] = ch.PageIndex
+		contents[i] = ch.Content
 	}
 
 	// Deterministic primary keys from docID and chunkIndex to avoid AutoID API differences
@@ -50,11 +56,17 @@ func UpsertMilvusVectors(ctx context.Context, vectors [][]float32, docID int64, 
 	colID := milvusentity.NewColumnInt64("id", ids)
 	colDoc := milvusentity.NewColumnInt64("doc_id", docIDs)
 	colChunk := milvusentity.NewColumnInt32("chunk_index", chunkIdxs)
+	colPage := milvusentity.NewColumnInt32("page_index", pageIdxs)
+	colContent := milvusentity.NewColumnVarChar("content", contents)
 	colVec := milvusentity.NewColumnFloatVector("embedding", milvusVectorDim, vectors)
 
-	if _, err := cli.Insert(ctx, collection, "", colID, colDoc, colChunk, colVec); err != nil {
+	if _, err := cli.Insert(ctx, collection, "", colID, colDoc, colChunk, colPage, colContent, colVec); err != nil {
 		return nil, "", err
 	}
+	logger.WithFields(map[string]interface{}{
+		"collection": collection,
+		"rows":       len(chunks),
+	}).Info("milvus: insert done")
 	return ids, collection, nil
 }
 
@@ -64,6 +76,8 @@ func createChunksCollection(ctx context.Context, cli milvusclient.Client, collec
 	schema.WithField(milvusentity.NewField().WithName("id").WithDataType(milvusentity.FieldTypeInt64).WithIsPrimaryKey(true))
 	schema.WithField(milvusentity.NewField().WithName("doc_id").WithDataType(milvusentity.FieldTypeInt64))
 	schema.WithField(milvusentity.NewField().WithName("chunk_index").WithDataType(milvusentity.FieldTypeInt32))
+	schema.WithField(milvusentity.NewField().WithName("page_index").WithDataType(milvusentity.FieldTypeInt32))
+	schema.WithField(milvusentity.NewField().WithName("content").WithDataType(milvusentity.FieldTypeVarChar).WithMaxLength(milvusContentMaxLen))
 	schema.WithField(milvusentity.NewField().WithName("embedding").WithDataType(milvusentity.FieldTypeFloatVector).WithDim(milvusVectorDim))
 
 	if err := cli.CreateCollection(ctx, schema, 2); err != nil {

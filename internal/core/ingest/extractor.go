@@ -2,6 +2,7 @@ package ingest
 
 import (
 	s3client "ai-learn-english/pkg/s3"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -10,10 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	pdf "github.com/ledongthuc/pdf"
 )
 
 // FetchToLocalTemp downloads local or S3 file to a temporary path and returns a cleanup function.
@@ -81,26 +82,51 @@ func FetchToLocalTemp(filePath string) (string, func(), error) {
 	return tmp.Name(), func() { _ = os.Remove(tmp.Name()) }, nil
 }
 
-// ExtractPDFTextPages extracts text by pages using ledongthuc/pdf.
+// ExtractPDFTextPages extracts readable text per page using ledongthuc/pdf, avoiding binary PDF streams.
 func ExtractPDFTextPages(localPath string) ([]string, error) {
-	// Minimal POC: read file and treat as a single text page by best-effort UTF-8 conversion.
-	f, err := os.ReadFile(localPath)
+	// Open with PDF parser
+	file, reader, err := pdf.Open(localPath)
 	if err != nil {
 		return nil, err
 	}
-	var content string
-	if utf8.Valid(f) {
-		content = string(f)
-	} else {
-		// Replace invalid runes
-		content = string([]rune(string(f)))
+	defer file.Close()
+
+	pageCount := reader.NumPage()
+	pages := make([]string, 0, pageCount)
+	for pageIndex := 1; pageIndex <= pageCount; pageIndex++ {
+		p := reader.Page(pageIndex)
+		if p.V.IsNull() {
+			continue
+		}
+		// Get plain text stream for this page
+		plainText, err := p.GetPlainText(nil)
+		if err != nil {
+			continue
+		}
+		text := sanitizeUTF8Printable(plainText)
+		if strings.TrimSpace(text) != "" {
+			pages = append(pages, text)
+		}
 	}
-	// Sanitize to printable utf-8 (remove BOM, control except common whitespace)
-	content = sanitizeUTF8Printable(content)
-	if strings.TrimSpace(content) == "" {
-		return nil, fmt.Errorf("empty content")
+
+	// Fallback to whole-document text if page-wise extraction produced nothing
+	if len(pages) == 0 {
+		plainDoc, err := reader.GetPlainText()
+		if err == nil {
+			var buf bytes.Buffer
+			if _, err := io.Copy(&buf, plainDoc); err == nil {
+				text := sanitizeUTF8Printable(buf.String())
+				if strings.TrimSpace(text) != "" {
+					pages = []string{text}
+				}
+			}
+		}
 	}
-	return []string{content}, nil
+
+	if len(pages) == 0 {
+		return nil, fmt.Errorf("no extractable text")
+	}
+	return pages, nil
 }
 
 // sanitizeUTF8Printable removes BOM and non-printable runes, keeping common whitespace.

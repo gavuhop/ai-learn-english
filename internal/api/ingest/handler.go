@@ -31,10 +31,12 @@ func HandleIngest(c fiber.Ctx) error {
 	// Fire and forget
 	go ingest.RunIngestion(docID, force)
 
-	return apperror.Success(c, apperror.FiberSuccessMessage{
+	// Return 202 Accepted for async processing
+	payload := apperror.FiberSuccessMessage{
 		Code:       status.OK,
 		Message:    "ingest started",
 		TrackingID: trackingID,
 		Data:       ingestResponse{DocID: docID},
-	})
+	}
+	return c.Status(fiber.StatusAccepted).JSON(payload)
 }
