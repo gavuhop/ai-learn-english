@@ -15,6 +15,9 @@ build:
 tidy:
 	$(GO) mod tidy
 
+migrate:
+	./scrips/migration.sh upgrade head
+
 clean:
 	rm -rf $(BIN_DIR)
 
