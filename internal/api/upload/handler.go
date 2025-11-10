@@ -73,11 +73,7 @@ func HandleUpload(c fiber.Ctx) error {
 	// Write to backend while hashing
 	if useS3 {
 		storedPath, sha256Hex, err = storeToS3(tee, fh, hasher)
-		logger.Info(
-			fmt.Sprintf("%v: store to s3", config.ModuleUpload),
-			"tracking_id", trackingID,
-			"file_name", fh.Filename,
-		)
+		logger.Info(fmt.Sprintf("%v: store to s3", config.ModuleUpload))
 	}
 
 	if err != nil {

@@ -63,66 +63,52 @@ func getCallerInfo() (string, int) {
 
 func Debug(format string, args ...interface{}) {
 	file, line := getCallerInfo()
-	log.WithFields(logrus.Fields{
-		"file": fmt.Sprintf("%s:%d", file, line),
-	}).Debugf(format, args...)
+	log.Debugf("%s:%d "+format, append([]interface{}{file, line}, args...)...)
 }
 
 func Info(format string, args ...interface{}) {
 	file, line := getCallerInfo()
-	log.WithFields(logrus.Fields{
-		"file": fmt.Sprintf("%s:%d", file, line),
-	}).Infof(format, args...)
+	log.Infof("%s:%d "+format, append([]interface{}{file, line}, args...)...)
 }
 
 func Warn(format string, args ...interface{}) {
 	file, line := getCallerInfo()
-	log.WithFields(logrus.Fields{
-		"file": fmt.Sprintf("%s:%d", file, line),
-	}).Warnf(format, args...)
+	log.Warnf("%s:%d "+format, append([]interface{}{file, line}, args...)...)
 }
 
 func Error(err error, format string, args ...interface{}) {
 	file, line := getCallerInfo()
 
-	fields := logrus.Fields{
-		"file": fmt.Sprintf("%s:%d", file, line),
-	}
+	fields := logrus.Fields{}
 
 	if err != nil {
 		fields["error"] = err.Error()
 	}
 
-	log.WithFields(fields).Errorf(format, args...)
+	log.WithFields(fields).Errorf("%s:%d "+format, append([]interface{}{file, line}, args...)...)
 }
 
 func Errorf(format string, args ...interface{}) {
 	file, line := getCallerInfo()
-	log.WithFields(logrus.Fields{
-		"file": fmt.Sprintf("%s:%d", file, line),
-	}).Errorf(format, args...)
+	log.Errorf("%s:%d "+format, append([]interface{}{file, line}, args...)...)
 }
 
 func Fatal(err error, format string, args ...interface{}) {
 	file, line := getCallerInfo()
 
-	fields := logrus.Fields{
-		"file": fmt.Sprintf("%s:%d", file, line),
-	}
+	fields := logrus.Fields{}
 
 	if err != nil {
 		fields["error"] = err.Error()
 	}
 
-	log.WithFields(fields).Fatalf(format, args...)
+	log.WithFields(fields).Fatalf("%s:%d "+format, append([]interface{}{file, line}, args...)...)
 }
 
 // Fatalf logs a fatal message without error object and exits
 func Fatalf(format string, args ...interface{}) {
 	file, line := getCallerInfo()
-	log.WithFields(logrus.Fields{
-		"file": fmt.Sprintf("%s:%d", file, line),
-	}).Fatalf(format, args...)
+	log.Fatalf("%s:%d "+format, append([]interface{}{file, line}, args...)...)
 }
 
 // WithField adds a field to the logger
