@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"ai-learn-english/config"
 	"ai-learn-english/internal/core/ingest"
 	"ai-learn-english/pkg/apperror"
 	"ai-learn-english/pkg/apperror/status"
@@ -18,11 +19,11 @@ func HandleIngest(c fiber.Ctx) error {
 
 	docIDStr := c.Params("docID")
 	if docIDStr == "" {
-		return apperror.BadRequest(c, status.FileUploadMissingParams, "docID is required")
+		return apperror.BadRequest(config.ModuleIngest, c, status.FileUploadMissingParams, "docID is required")
 	}
 	docID, err := strconv.ParseInt(docIDStr, 10, 64)
 	if err != nil {
-		return apperror.BadRequest(c, status.FileUploadMissingParams, "invalid docID")
+		return apperror.BadRequest(config.ModuleIngest, c, status.FileUploadMissingParams, "invalid docID")
 	}
 
 	q := c.Query("force")

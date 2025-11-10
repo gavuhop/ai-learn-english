@@ -45,6 +45,7 @@ const (
 	ModuleCors     Module = "cors"
 	ModuleServer   Module = "server"
 	ModuleSetting  Module = "setting"
+	ModuleUpload   Module = "upload"
 )
 
 type databaseConfig struct {

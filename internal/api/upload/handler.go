@@ -2,8 +2,10 @@ package upload
 
 import (
 	"ai-learn-english/config"
+	"ai-learn-english/internal/core/ingest"
 	"ai-learn-english/internal/database"
 	"ai-learn-english/internal/database/model"
+	"ai-learn-english/pkg/logger"
 	s3client "ai-learn-english/pkg/s3"
 	"context"
 	"crypto/sha256"
@@ -26,22 +28,20 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-
-
 func HandleUpload(c fiber.Ctx) error {
 	trackingID := c.Get("X-Request-ID")
 	// Parse multipart file
 	fh, err := c.FormFile("file")
 	if err != nil {
-		return apperror.BadRequest(c, status.FileUploadMissingParams, "file is required")
+		return apperror.BadRequest(config.ModuleUpload, c, status.FileUploadMissingParams, "file is required")
 	}
 	if fh == nil || fh.Size == 0 {
-		return apperror.BadRequest(c, status.FileUploadMissingParams, "empty file")
+		return apperror.BadRequest(config.ModuleUpload, c, status.FileUploadMissingParams, "empty file")
 	}
 
 	file, err := fh.Open()
 	if err != nil {
-		return apperror.BadRequest(c, status.FileUploadMissingParams, "cannot open file")
+		return apperror.BadRequest(config.ModuleUpload, c, status.FileUploadMissingParams, "cannot open file")
 	}
 	defer file.Close()
 
@@ -52,16 +52,16 @@ func HandleUpload(c fiber.Ctx) error {
 	// Prepare DB connection
 	db, err := database.GetDB()
 	if err != nil {
-		return apperror.InternalError(c, err)
+		return apperror.InternalError(config.ModuleDatabase, c, err)
 	}
 
 	if err := EnsureDocumentsStatusColumn(db); err != nil {
-		return apperror.InternalError(c, err)
+		return apperror.InternalError(config.ModuleDatabase, c, err)
 	}
 
 	userID, err := EnsureDefaultUser(db)
 	if err != nil {
-		return apperror.InternalError(c, err)
+		return apperror.InternalError(config.ModuleDatabase, c, err)
 	}
 
 	// Decide storage backend
@@ -73,11 +73,26 @@ func HandleUpload(c fiber.Ctx) error {
 	// Write to backend while hashing
 	if useS3 {
 		storedPath, sha256Hex, err = storeToS3(tee, fh, hasher)
-	} else {
-		storedPath, sha256Hex, err = storeToLocal(tee, fh, hasher)
+		logger.Info(
+			fmt.Sprintf("%v: store to s3", config.ModuleUpload),
+			"tracking_id", trackingID,
+			"file_name", fh.Filename,
+		)
 	}
+
 	if err != nil {
-		return apperror.InternalError(c, err)
+		return apperror.InternalError(config.ModuleUpload, c, err)
+	}
+
+	// If a document with the same hash already exists, skip creating a new record and skip ingest
+	var existing model.Document
+	if err := db.Where("sha256 = ?", sha256Hex).Take(&existing).Error; err == nil {
+		return apperror.Success(config.ModuleUpload, c, apperror.FiberSuccessMessage{
+			Code:       status.OK,
+			Message:    "File already exists",
+			TrackingID: trackingID,
+			Data:       uploadResponse{DocID: existing.ID},
+		})
 	}
 
 	// Create DB record (insert via model, then set status)
@@ -90,60 +105,22 @@ func HandleUpload(c fiber.Ctx) error {
 		UploadedAt:       &now,
 	}
 	if err := db.Create(&doc).Error; err != nil {
-		return apperror.InternalError(c, err)
+		return apperror.InternalError(config.ModuleUpload, c, err)
 	}
 	// Optional: update sha256 if available in schema
 	_ = db.Model(&model.Document{}).Where("id = ?", doc.ID).Update("sha256", sha256Hex).Error
 	// Update status column
 	_ = db.Exec("UPDATE documents SET status=? WHERE id=?", "uploaded", doc.ID).Error
 
-	return apperror.Success(c, apperror.FiberSuccessMessage{
+	// Trigger ingestion immediately (non-blocking)
+	go ingest.RunIngestion(doc.ID, false)
+
+	return apperror.Success(config.ModuleUpload, c, apperror.FiberSuccessMessage{
 		Code:       status.OK,
-		Message:    "File uploaded successfully",
+		Message:    "File uploaded successfully, ingest started",
 		TrackingID: trackingID,
 		Data:       uploadResponse{DocID: doc.ID},
 	})
-}
-
-func storeToLocal(r io.Reader, fh *multipart.FileHeader, hasher io.Writer) (string, string, error) {
-	// storage path
-	baseDir := filepath.Join("storage", "documents")
-	if err := os.MkdirAll(baseDir, 0o755); err != nil {
-		return "", "", fmt.Errorf("failed to create storage dir: %w", err)
-	}
-
-	// We must read all for hash; buffer to temp then rename
-	tmpFile, err := os.CreateTemp(baseDir, "upload-*.tmp")
-	if err != nil {
-		return "", "", fmt.Errorf("failed to create temp file: %w", err)
-	}
-	defer func() {
-		tmpFile.Close()
-		// Leave temp removal to rename behavior; best-effort cleanup if it remains
-		_ = os.Remove(tmpFile.Name())
-	}()
-
-	// Copy stream to both hasher and file
-	mw := io.MultiWriter(tmpFile, hasher)
-	if _, err := io.Copy(mw, r); err != nil {
-		return "", "", fmt.Errorf("failed to write file: %w", err)
-	}
-
-	// Build final name from hash
-	sum := hasher.(interface{ Sum([]byte) []byte }).Sum(nil)
-	shaHex := hex.EncodeToString(sum)
-	ext := strings.ToLower(filepath.Ext(fh.Filename))
-	if ext == "" {
-		ext = ".pdf"
-	}
-	finalName := fmt.Sprintf("%s%s", shaHex, ext)
-	finalPath := filepath.Join(baseDir, finalName)
-
-	if err := os.Rename(tmpFile.Name(), finalPath); err != nil {
-		return "", "", fmt.Errorf("failed to finalize file: %w", err)
-	}
-
-	return finalPath, shaHex, nil
 }
 
 func storeToS3(r io.Reader, fh *multipart.FileHeader, hasher io.Writer) (string, string, error) {
