@@ -15,6 +15,33 @@ type ContextSnippet struct {
 type Response struct {
 	Answer   string           `json:"answer"`
 	Contexts []ContextSnippet `json:"contexts"`
+	Learning *LearningAnswer  `json:"learning,omitempty"`
+}
+
+// Learning-oriented structured output
+type LearningAnswer struct {
+	ShortAnswer  string             `json:"short_answer"`
+	Wordlist     []WordItem         `json:"wordlist"`
+	Phrases      []string           `json:"phrases"`
+	Examples     []BilingualExample `json:"examples"`
+	Exercises    []FillBlank        `json:"exercises"`
+	Insufficient bool               `json:"insufficient"`
+}
+
+type WordItem struct {
+	En  string `json:"en"`
+	Vi  string `json:"vi"`
+	Def string `json:"def"`
+}
+
+type BilingualExample struct {
+	En string `json:"en"`
+	Vi string `json:"vi"`
+}
+
+type FillBlank struct {
+	Question string `json:"question"`
+	Answer   string `json:"answer"`
 }
 
 type chatMessage struct {
