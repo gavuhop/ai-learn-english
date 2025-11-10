@@ -11,6 +11,7 @@ import (
 
 const milvusVectorDim = 1536
 const milvusContentMaxLen = 8192
+const moduleName = string(config.ModuleMilvus)
 
 // UpsertMilvusVectors ensures collection and inserts embeddings. Returns IDs and collection.
 func UpsertMilvusVectors(ctx context.Context, vectors [][]float32, docID int64, chunks []Chunk) ([]int64, string, error) {
@@ -66,7 +67,7 @@ func UpsertMilvusVectors(ctx context.Context, vectors [][]float32, docID int64, 
 	logger.WithFields(map[string]interface{}{
 		"collection": collection,
 		"rows":       len(chunks),
-	}).Info("milvus: insert done")
+	}).Infof("%s insert done", moduleName)
 	return ids, collection, nil
 }
 
@@ -84,6 +85,27 @@ func createChunksCollection(ctx context.Context, cli milvusclient.Client, collec
 		return err
 	}
 
-	// Optional: index creation can be added later
+	metricType := config.Cfg.Milvus.IndexHNSWConfig.MetricType
+	m := config.Cfg.Milvus.IndexHNSWConfig.M
+	efConstruction := config.Cfg.Milvus.IndexHNSWConfig.EfConstruction
+
+	index, err := milvusentity.NewIndexHNSW(milvusentity.MetricType(metricType), m, efConstruction)
+	if err != nil {
+		logger.Errorf("%s failed to create index params: %v", moduleName, err)
+		return err
+	}
+	if err := cli.CreateIndex(ctx, collection, "embedding", index, false); err != nil {
+		logger.Errorf("%s failed to create index: %v", moduleName, err)
+		return err
+	}
+
+	logger.WithFields(map[string]interface{}{
+		"collection":      collection,
+		"field":           "embedding",
+		"metric_type":     metricType,
+		"m":               m,
+		"ef_construction": efConstruction,
+	}).Infof("%s index created successfully", moduleName)
+
 	return nil
 }

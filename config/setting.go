@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
@@ -13,11 +15,11 @@ import (
 )
 
 type serverConfig struct {
-	Port        int    `koanf:"port"`
-	Mode        string `koanf:"mode"`
-	Concurrency int    `koanf:"concurrency"`
-	BodyLimit   int    `koanf:"body_limit"`
-	AppName     string `koanf:"app_name"`
+	Port        int    `koanf:"port" validate:"required"`
+	Mode        string `koanf:"mode" validate:"required"`
+	Concurrency int    `koanf:"concurrency" validate:"required"`
+	BodyLimit   int    `koanf:"body_limit" validate:"required"`
+	AppName     string `koanf:"app_name" validate:"required"`
 }
 
 type logLevel string
@@ -31,37 +33,58 @@ const (
 	Panic logLevel = "panic"
 )
 
+type Module string
+
+const (
+	ModuleMilvus   Module = "milvus"
+	ModuleIngest   Module = "ingest"
+	ModuleDatabase Module = "database"
+	ModuleOpenAI   Module = "openai"
+	ModuleGemini   Module = "gemini"
+	ModuleS3       Module = "s3"
+	ModuleCors     Module = "cors"
+	ModuleServer   Module = "server"
+	ModuleSetting  Module = "setting"
+)
+
 type databaseConfig struct {
-	Host         string `koanf:"host"`
-	Port         int    `koanf:"port"`
-	User         string `koanf:"user"`
-	Password     string `koanf:"password"`
-	Name         string `koanf:"name"`
-	MaxIdleConns int    `koanf:"max_idle_conns"`
-	MaxOpenConns int    `koanf:"max_open_conns"`
-	MaxLifetime  int    `koanf:"max_lifetime"`
+	Host         string `koanf:"host" validate:"required"`
+	Port         int    `koanf:"port" validate:"required"`
+	User         string `koanf:"user" validate:"required"`
+	Password     string `koanf:"password" validate:"required"`
+	Name         string `koanf:"name" validate:"required"`
+	MaxIdleConns int    `koanf:"max_idle_conns" validate:"required"`
+	MaxOpenConns int    `koanf:"max_open_conns" validate:"required"`
+	MaxLifetime  int    `koanf:"max_lifetime" validate:"required"`
 }
 
 type openaiConfig struct {
-	Key   string `koanf:"key"`
-	Model string `koanf:"model"`
-	EmbeddingModel string `koanf:"embedding_model"`
+	Key            string `koanf:"key" validate:"required"`
+	Model          string `koanf:"model" validate:"required"`
+	EmbeddingModel string `koanf:"embedding_model" validate:"required"`
 }
 
 type geminiConfig struct {
-	Key   string `koanf:"key"`
-	Model string `koanf:"model"`
+	Key   string `koanf:"key" validate:"required"`
+	Model string `koanf:"model" validate:"required"`
 }
 
 type corsConfig struct {
-	AllowOrigins []string `koanf:"allow_origins"`
-	AllowMethods []string `koanf:"allow_methods"`
-	AllowHeaders []string `koanf:"allow_headers"`
+	AllowOrigins []string `koanf:"allow_origins" validate:"required"`
+	AllowMethods []string `koanf:"allow_methods" validate:"required"`
+	AllowHeaders []string `koanf:"allow_headers" validate:"required"`
 }
 
 type milvusConfig struct {
-	Address    string `koanf:"address"`
-	Collection string `koanf:"collection"`
+	Address         string          `koanf:"address" validate:"required"`
+	Collection      string          `koanf:"collection" validate:"required"`
+	IndexHNSWConfig indexHNSWConfig `koanf:"index_hnsw_config"`
+}
+
+type indexHNSWConfig struct {
+	MetricType     string `koanf:"metric_type" validate:"required"`
+	M              int    `koanf:"m" validate:"required"`
+	EfConstruction int    `koanf:"ef_construction" validate:"required"`
 }
 
 type config struct {
@@ -78,17 +101,17 @@ type config struct {
 }
 
 type s3Config struct {
-	Endpoint  string `koanf:"endpoint"`
-	AccessKey string `koanf:"access_key"`
-	SecretKey string `koanf:"secret_key"`
-	Region    string `koanf:"region"`
-	UseSSL    bool   `koanf:"use_ssl"`
-	Bucket    string `koanf:"bucket"`
+	Endpoint  string `koanf:"endpoint" validate:"required"`
+	AccessKey string `koanf:"access_key" validate:"required"`
+	SecretKey string `koanf:"secret_key" validate:"required"`
+	Region    string `koanf:"region" validate:"required"`
+	UseSSL    bool   `koanf:"use_ssl" validate:"required"`
+	Bucket    string `koanf:"bucket" validate:"required"`
 }
 
 type ingestConfig struct {
-	ChunkTokens  int `koanf:"chunk_tokens"`
-	ChunkOverlap int `koanf:"chunk_overlap"`
+	ChunkTokens  int `koanf:"chunk_tokens" validate:"required"`
+	ChunkOverlap int `koanf:"chunk_overlap" validate:"required"`
 }
 
 func buildMySQLDSN(cfg databaseConfig) string {
@@ -151,6 +174,7 @@ func init() {
 	once.Do(func() {
 		k := koanf.New(".")
 
+		validate := validator.New()
 		// defaults
 		Cfg = defaultConfig
 
@@ -168,11 +192,29 @@ func init() {
 
 		// bind
 		if e := k.Unmarshal("", &Cfg); e != nil {
-			return
+			log.Errorf("failed to unmarshal config: %v", e)
 		}
 
 		if Cfg.Dns == "" {
 			Cfg.Dns = buildMySQLDSN(Cfg.Database)
+		}
+
+		// validate config
+		if err := validate.Struct(Cfg); err != nil {
+			if errs, ok := err.(validator.ValidationErrors); ok {
+				var sb strings.Builder
+				sb.WriteString(fmt.Sprintf("%v Config validation failed:\n", ModuleSetting))
+	
+				for _, e := range errs {
+					sb.WriteString(
+						fmt.Sprintf("  • %s: failed '%s' (value: %v)\n", e.Field(), e.Tag(), e.Value()),
+					)
+				}
+	
+				log.Error(sb.String())
+			} else {
+				log.Errorf("config validation failed: %v", err)
+			}
 		}
 	})
 
