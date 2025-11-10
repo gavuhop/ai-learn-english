@@ -47,6 +47,7 @@ const (
 	ModuleSetting  Module = "setting"
 	ModuleUpload   Module = "upload"
 	ModuleRetriever Module = "retriever"
+	ModuleQuery    Module = "query"
 )
 
 type databaseConfig struct {

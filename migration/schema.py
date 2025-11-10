@@ -45,7 +45,7 @@ class Message(Base):
     __tablename__ = "messages"
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    role = Column(Enum("user", "assistant", name="role_enum"), nullable=False)
+    role = Column(String(50), nullable=False)
     content = Column(Text, nullable=False)
     document_id = Column(BigInteger, ForeignKey("documents.id", ondelete="SET NULL"))
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
