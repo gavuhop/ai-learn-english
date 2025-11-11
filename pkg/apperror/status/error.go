@@ -15,15 +15,15 @@ const (
 
 // FileUpload client/validation errors start at *000
 const (
-	FileUploadInvalidRequestBody         ErrorCode = BadRequestBase + iota // 0
-	FileUploadMissingParams                                                // 1
+	FileUploadInvalidRequestBody ErrorCode = BadRequestBase + iota // 0
+	FileUploadMissingParams                                        // 1
 )
 
 // FileUpload internal errors start at 1000
 const (
-	FileUploadInternal                         ErrorCode = InternalErrorBase + iota // 1000
-	FileUploadMarshalRequestFailed                                                  // 1001
-	FileUploadEnqueueTaskFailed                                                     // 1002
+	FileUploadInternal             ErrorCode = InternalErrorBase + iota // 1000
+	FileUploadMarshalRequestFailed                                      // 1001
+	FileUploadEnqueueTaskFailed                                         // 1002
 )
 
 // Deprecated: prefer domain-specific internal codes above

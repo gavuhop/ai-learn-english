@@ -1,6 +1,5 @@
 package status
 
-
 type SuccessCode int
 
 // Reserved ranges by domain:
@@ -18,4 +17,3 @@ type FiberSuccessMessage struct {
 	TrackingID string      `json:"tracking_id"`
 	Data       any         `json:"data"`
 }
-

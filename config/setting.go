@@ -36,18 +36,18 @@ const (
 type Module string
 
 const (
-	ModuleMilvus   Module = "milvus"
-	ModuleIngest   Module = "ingest"
-	ModuleDatabase Module = "database"
-	ModuleOpenAI   Module = "openai"
-	ModuleGemini   Module = "gemini"
-	ModuleS3       Module = "s3"
-	ModuleCors     Module = "cors"
-	ModuleServer   Module = "server"
-	ModuleSetting  Module = "setting"
-	ModuleUpload   Module = "upload"
+	ModuleMilvus    Module = "milvus"
+	ModuleIngest    Module = "ingest"
+	ModuleDatabase  Module = "database"
+	ModuleOpenAI    Module = "openai"
+	ModuleGemini    Module = "gemini"
+	ModuleS3        Module = "s3"
+	ModuleCors      Module = "cors"
+	ModuleServer    Module = "server"
+	ModuleSetting   Module = "setting"
+	ModuleUpload    Module = "upload"
 	ModuleRetriever Module = "retriever"
-	ModuleQuery    Module = "query"
+	ModuleQuery     Module = "query"
 )
 
 type databaseConfig struct {
@@ -207,13 +207,13 @@ func init() {
 			if errs, ok := err.(validator.ValidationErrors); ok {
 				var sb strings.Builder
 				sb.WriteString(fmt.Sprintf("%v Config validation failed:\n", ModuleSetting))
-	
+
 				for _, e := range errs {
 					sb.WriteString(
 						fmt.Sprintf("  • %s: failed '%s' (value: %v)\n", e.Field(), e.Tag(), e.Value()),
 					)
 				}
-	
+
 				log.Error(sb.String())
 			} else {
 				log.Errorf("config validation failed: %v", err)
